@@ -80,10 +80,11 @@ Para garantir a reprodutibilidade da arquitetura MoTI, foi elaborado um tutorial
 - [Python 3.12](https://www.python.org/);
 - [OpenSSL](https://www.openssl.org/);
 - [Mosquitto](https://mosquitto.org/);
+- [Amazon Web Services (AWS)](https://aws.amazon.com/pt/free/);
+
+
 
 ## AMBIENTE LOCAL
-
-Para garantir o funcionamento correto do sistema, é necessário preparar o ambiente de execução local
 
 ### 1. PREPARAR O AMBIENTE
 
@@ -170,7 +171,7 @@ sudo systemctl restart mosquitto
 ```
 
 
-### CERTIFICADOS TLS LOCAIS
+### 3. CERTIFICADOS TLS LOCAIS
 
 Ativar o ambiente virtual:
 ```bash
@@ -194,7 +195,7 @@ sudo chmod 644 ~/Documentos/MoTI/mqtt_tls_certs/*
 ```
 
 
-### PUBLISHER
+### 4. PUBLISHER
 
 No diretório do projeto, criar o arquivo "publish_to_mosquitto.py" em linguagem Python, com o código abaixo, que publicará os dados do dispositivo IoT nos tópicos do broker MQTT Mosquitto. O código fonte também pode ser encontrado anexado ao projeto.
 
@@ -364,7 +365,7 @@ sudo systemctl enable moti-publisher
 sudo systemctl start moti-publisher  
 ```
 
-### SUBSCRIBER
+### 5. SUBSCRIBER
 
 No diretório do projeto, criar também o arquivo "subscribe_to_ipfs.py" em linguagem Python, com o código abaixo, que assinará os tópicos do broker MQTT Mosquitto e os enviará ao IPFS de acordo com o nível de QoS. O código fonte também pode ser encontrado anexado ao projeto.
 
@@ -559,7 +560,179 @@ sudo systemctl enable moti-subscriber
 sudo systemctl start moti-subscriber  
 ```
 
+
 ## AMBIENTE REMOTO
+
+### 1. INSTÂNCIA EC2 NA AWS
+
+A escolha da plataforma Amazon Web Services (AWS) para hospedagem do nó IPFS remoto foi motivada por sua infraestrutura confiável, escalável e amplamente consolidada no meio acadêmico e profissional. A AWS oferece recursos de segurança robustos, como controle de acesso, conexões seguras via SSH e suporte a certificados TLS, alinhando-se aos requisitos de autenticação e proteção de dados da arquitetura MoTI. 
+
+Acessar o Console EC2 em https://aws.amazon.com/pt/console/ e criar uma instância. Em seguida criar um novo par de chaves SSH, tipo RSA, e salvar no formato “.pem”.
+
+Configurar a rede (firewall), criando um grupo de segurança para o acesso remoto ao nó IPFS, e editando as regras de segurança, considerando as portas e IPs:
+```bash
+TIPO     | PROT. | PORTA | ORIGEM 	     | DESCRIÇÃO 
+
+SSH 	 | TCP   | 22    | 189.xx.xxx.xxx/32 | Acesso remoto via terminal SSH 
+                                               do computador local
+
+TCP pers | TCP   | 8443  | 189.xx.xxx.xxx/32 | Conexão mTLS do computador local 
+                                               ao Nginx (para enviar dados via 
+                                               HTTPS ao IPFS)
+
+TCP pers | TCP   | 8443  | 177.xx.xxx.xxx/32 | Conexão mTLS de outro dispositivo
+                                               autorizado (usuário)
+
+TCP pers | TCP   | 4001  | 0.xx.xxx.xxx/0    | Comunicação entre nós IPFS na rede 
+                                               peer-to-peer
+
+TCP pers | TCP   | 5001  | 189.xx.xxx.xxx/32 | Acesso direto a API do IPFS 
+                                               (bypassando o Nginx) 
+```
+
+
+Clicar em “Iniciar Instância” e aguardar que a instância apareça como “Executando”. O console da instância é apresentado abaixo: 
+
+![image](https://github.com/Camila-Barros/MoTI/blob/main/Fig_EC2instancia.png)
+
+Clicar na instância e anotar o número do IPv4 público.
+
+### 2. INSTÂNCIA EC2 (VM) VIA SSH
+
+Mover a chave “.pem” salva anteriormente para uma pasta segura
+```bash
+mkdir -p ~/aws-keys
+mv ~/Downloads/ipfs-key.pem ~/aws-keys/ 
+```
+
+Ajustar as permissões da chave, pois o SSH exige que a chave tenha permissão restrita:
+```bash
+chmod 400 ~/aws-keys/ipfs-key.pem 
+```
+  
+Conectar e acessar a instância EC2 via SSH:
+```bash
+#Substituir pelo nome do arquivo da chave SSH .pem
+#Substituir xxx pelo IPv4 da instância
+
+ssh -i ~/aws-keys/seuarquivo.pem ubuntu@54.xxx.xxx.xxx  
+```
+
+Atualizar o sistema:
+```bash
+sudo apt update && sudo apt upgrade -y  
+```
+  
+Instalar as dependências básicas:
+```bash
+sudo apt install curl wget tar -y 
+```
+
+Baixar e instalar o daemon Go-IPFS (Servidor IPFS) na EC2 (VM):
+```bash
+wget https://dist.ipfs.tech/go-ipfs/v0.24.0/go-ipfs_v0.24.0_linux-amd64.tar.gz
+tar -xvzf go-ipfs_v0.24.0_linux-amd64.tar.gz
+cd go-ipfs
+sudo bash install.sh  
+```
+
+Verificar a instalação:
+```bash
+ipfs --version  
+```
+
+Inicializar o IPFS. Esse comando cria a estrutura básica de diretórios e configurações do IPFS para o usuário Ubuntu.
+```bash
+ipfs init 
+```
+  
+Rodar o daemon do IPFS e configurar para que inicie automaticamente:
+```bash
+ipfs daemon & 
+```
+
+Instalar o Nginx na EC2 (protege o gateway com um reverse-proxy autenticado):
+```bash
+sudo apt update && sudo apt install nginx 
+```
+	
+Criar o diretório para armazenar os certificados digitais do IPFS:
+```bash
+sudo mkdir -p /etc/nginx/certs 
+```
+
+Abrir o arquivo de configuração do Nginx:
+```bash
+sudo nano /etc/nginx/sites-available/ipfs.conf 
+```
+
+Editar o arquivo de configuração:
+```bash
+server {
+    listen 8443 ssl;
+    server_name _;
+    # Serve certs
+    ssl_certificate      /etc/nginx/certs/nginx-server.crt;
+    ssl_certificate_key  /etc/nginx/certs/nginx-server.key;
+
+    # CA que verifica clientes
+    ssl_client_certificate /etc/nginx/certs/nginx-ca.crt;
+    ssl_verify_client    on;
+
+    # Proxy para API do IPFS
+    location / {
+        proxy_pass http://127.0.0.1:5001;
+        proxy_set_header Host $host;
+    }
+    # Expor o arquivo data.jsonl
+    location /data.jsonl {
+        alias /var/www/ipfs_data/data.jsonl;
+       # add_header Content-Type text/plain;
+    }
+} 
+```
+
+Ativar o Nginx:
+```bash
+sudo ln -s /etc/nginx/sites-available/ipfs.conf /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx 
+```
+
+Preparar o arquivo de registros:
+```bash
+sudo mkdir -p /var/www/ipfs_data
+sudo touch /var/www/ipfs_data/data.jsonl
+sudo chown www-data:www-data /var/www/ipfs_data/data.jsonl 
+```
+
+Ajustar as permissões do arquivo remoto:
+```bash
+sudo chown ubuntu:www-data /var/www/ipfs_data/data.jsonl
+sudo chmod  664             /var/www/ipfs_data/data.jsonl 
+```
+
+
+### 3. CERTIFICADOS TLS NGINX
+
+Gerar os certificados digitais para segurança TLS, utilizando o OpenSSL para gerar certificados que serão utilizados na comunicação MQTT e IPFS:
+```bash
+openssl req -newkey rsa:2048 -nodes -keyout client.key -x509 -days 365 -out client.crt 
+```
+    
+Transferir certificados do servidor EC2 para o dispositivo da rede local (ambiente local):
+```bash
+scp -i ~/aws-keys/ipfs-key.pem ubuntu@IP_DA_EC2:/etc/nginx/certs/nginx-client.* ~/Documentos/MoTI/mqtt_tls_certs/ 
+```
+
+---
+
+
+# TESTES
+
+## EXECUÇÃO
+
+
+
 
 
 ```bash
