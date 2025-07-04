@@ -593,7 +593,7 @@ TCP pers | TCP   | 5001  | 189.xx.xxx.xxx/32 | Acesso direto a API do IPFS
 
 Clicar em “Iniciar Instância” e aguardar que a instância apareça como “Executando”. O console da instância é apresentado abaixo: 
 
-![image](https://github.com/Camila-Barros/MoTI/blob/main/Fig_EC2instancia.png)
+![image](https://github.com/Camila-Barros/MoTI/blob/main/fig_EC2instancia.png)
 
 Clicar na instância e anotar o número do IPv4 público.
 
