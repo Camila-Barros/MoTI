@@ -731,6 +731,13 @@ scp -i ~/aws-keys/ipfs-key.pem ubuntu@IP_DA_EC2:/etc/nginx/certs/nginx-client.* 
 
 https://github.com/Camila-Barros/MoTI/blob/main/Demo02.mp4
 
+https://github.com/Camila-Barros/MoTI/assets/114541888/deff5b68-061f-4ebc-aadf-1b11a73449b1
+
+https://github.com/Camila-Barros/mqtt-kafka-ponte/assets/114541888/deff5b68-061f-4ebc-aadf-1b11a73449b1
+
+https://github.com/Camila-Barros/MoTI/blob/main/Demo02
+
+
 ## EXECUÇÃO
 
 ### Terminal 1
