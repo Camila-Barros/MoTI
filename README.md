@@ -731,10 +731,71 @@ scp -i ~/aws-keys/ipfs-key.pem ubuntu@IP_DA_EC2:/etc/nginx/certs/nginx-client.* 
 
 ## EXECUÇÃO
 
+<<<< VIDEO <<<<
 
+### Terminal 1
 
+Abrir um primeiro terminal, que rodará o nó IPFS remoto e o Nginx na instância EC2.
 
+Conectar via SSH na EC2:
+```bash
+ssh -i ~/aws-keys/ipfs-key.pem ubuntu@18.216.73.135 
+```
+
+Ativar o daemon IPFS:
+```bash
+nohup ipfs daemon > ~/ipfs.log 2>&1 & 
+```
+
+Conferir se o daemon IPFS está ativo:
+```bash
+ps aux | grep '[i]pfs daemon' 
+```
+
+Recarregar o Nginx (mTLS para IPFS):
+```bash
+sudo systemctl reload nginx 
+```
+       
+
+### Terminal 2
+
+Abrir um segundo terminal, que rodará como o computador na rede local da fábrica.
+
+Dar reload no daemon:
+```bash
+sudo systemctl daemon-reload 
+```
+  
+Executar os serviços de publish e subscriber:
+```bash
+sudo systemctl restart moti-publisher moti-subscriber  
+```
+  
+
+### Terminal 3
+  
+Abrir um terceiro terminal, para acompanhar os logs em tempo real de subscriber.
 
 ```bash
-chmod 
+sudo journalctl -u moti-subscriber -f  
 ```
+
+
+### Terminal 4
+  
+Abrir um quarto terminal, para acompanhar os logs em tempo real de publish.
+
+```bash
+sudo journalctl -u moti-publisher -f  
+```
+
+
+
+## Autora
+
+Eng. Camila Cabral de Barros
+
+Mestranda em Inovação Tecnológica pela UNIFESP
+
+[Lattes](http://lattes.cnpq.br/2066462797590469)
