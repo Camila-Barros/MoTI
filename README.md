@@ -729,9 +729,9 @@ scp -i ~/aws-keys/ipfs-key.pem ubuntu@IP_DA_EC2:/etc/nginx/certs/nginx-client.* 
 
 # TESTES
 
-## EXECUÇÃO
+https://github.com/Camila-Barros/MoTI/blob/main/Demo02.mp4
 
-<<<< VIDEO <<<<
+## EXECUÇÃO
 
 ### Terminal 1
 
