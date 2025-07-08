@@ -795,7 +795,38 @@ Abrir um quarto terminal, para acompanhar os logs em tempo real de publish.
 sudo journalctl -u moti-publisher -f  
 ```
 
+## TELAS DE LOGS
 
+A seguir, apresentam-se trechos de logs extraídos dos serviços de publicação e assinatura MQTT, ilustrando o comportamento dos três níveis de QoS (0, 1 e 2). Em cada exemplo, é possível acompanhar as transações de controle que garantem a entrega, como PUBLISH, PUBREC, PUBREL e PUBCOMP, conforme a especificação teórica discutida na Introdução. Esses registros permitem visualizar, na prática, o fluxo de confirmação de mensagens em cada nível de qualidade de serviço.
+
+### QoS-0
+
+![image](https://github.com/Camila-Barros/MoTI/blob/main/Logs_QoS_0.png)
+
+### QoS-1
+
+![image](https://github.com/Camila-Barros/MoTI/blob/main/Logs_QoS_1.png)
+
+### QoS-2
+
+![image](https://github.com/Camila-Barros/MoTI/blob/main/Logs_QoS_2.png)
+
+
+## TEMPO DE RESPOSTA
+
+Cada mensagem enviada inclui um identificador único (id) e um _timestamp_ de envio. No fim do processo, a aplicação retorna um _acknowledgment_ com o _timestamp_ de recebimento, permitindo calcular o tempo de resposta RTT (_Round Trip Time_). Esse tempo considera não só a comunicação MQTT, mas também o tempo de processamento, escrita no IPFS e resposta via SSH, o que faz com que ele varie bastante dependendo da infraestrutura e do momento da coleta.
+
+A Tabela abaixo apresenta uma amostra com dez envios de dados para cada nível de QoS (0, 1 e 2). O objetivo dessa tabela é ilustrar a estrutura dos dados coletados, incluindo o tempo de ida e volta (RTT), a temperatura simulada e a data/hora da transação. Essa amostra serve como exemplo do formato e conteúdo das mensagens utilizadas ao longo do experimento.
+
+![image](https://github.com/Camila-Barros/MoTI/blob/main/Tabela_RTT.png)
+
+Ao longo da implementação, foram realizadas coletas com diferentes volumes e condições operacionais, a fim de avaliar o desempenho do sistema em diferentes momentos. Dentre estas coletas, uma amostra com 93 mensagens por nível de QoS (totalizando 279 registros) foi escolhida para análise mais aprofundada, por representar um cenário de operação mais estável e com volume maior de dados. O gráfico de linha abaixo, com as 50 primeiras amostras de cada grupo, permite a comparação inicial dos comportamentos sem comprometer a legibilidade.  
+
+![image](https://github.com/Camila-Barros/MoTI/blob/main/Fig_GraficoQoStodos2.png)
+
+De maneira geral, os três níveis de QoS apresentaram comportamentos parecidos nessas primeiras 50 amostras. Mas ao olhar o conjunto completo, é possível perceber a presença de valores fora do padrão (_outliers_), especialmente em QoS 0, com dois casos acima de 10.000 ms. Isso indica que, mesmo sendo mais rápido em teoria, o QoS 0 é mais suscetível a falhas ou instabilidades quando comparado aos demais níveis.
+
+---
 
 ## Autora
 
