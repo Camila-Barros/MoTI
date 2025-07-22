@@ -46,7 +46,7 @@ A arquitetura do MoTI é formada pelos componentes:
 
 ## APLICAÇÃO
 
-![image](https://github.com/Camila-Barros/MoTI/blob/main/Fig_DiagramaSeq7.png)
+![image](https://github.com/Camila-Barros/MoTI/blob/main/Fig_DiagramaSeq8.png)
 
 **RegistroDispositivo:** O administrador cadastra cada dispositivo IoT junto ao broker MQTT (Mosquitto), definindo seus respectivos tópicos de publicação, níveis de QoS e certificações necessárias para autenticação.
 
